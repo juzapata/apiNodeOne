@@ -11,7 +11,7 @@ O middleware vai servir pra isso. Ele vai fazer a intermediação entre o usuár
 
 router.use(authMiddleware);
 
-router.get('/', (req, res)=>{
+router.get('/', (req, res) => {
     // como usamos o setamos o req, no middleware, e colocamos como uma de suas propriedades o userId, podemos pegar ele aqui.
     res.send({
         ok: true,

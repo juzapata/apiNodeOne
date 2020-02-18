@@ -13,7 +13,7 @@ const secretHash = require('../../config/auth.json')
 const router = express.Router();
 
 // função para gerar token
-function generateToken(params = {}){
+function generateToken(params = {}) {
     // esse segundo parâmetro do método sign tem que ser uma hash única da aplicação, não pode ter igual em nenhuma outra, então vamos criar uma pasta config, com auth.json, e lá a hash única
     // o params no caso vai ser o objeto do id
     return jwt.sign(params, secretHash.secret, {
@@ -26,63 +26,63 @@ function generateToken(params = {}){
 
 console.log('TA NO AUTH CONTROLLER JS');
 // vai criar um novo usuário quando ele chamar essa rota
-router.post('/register', async (req, res)=>{
-    try{
-        const {email} = req.body; // aqui está acessando a propriedade email dentro do req.body
-        
-        if (await User.findOne({email})){
-            return res.status(400).send({error: 'Usuário já existe'}); 
+router.post('/register', async (req, res) => {
+    try {
+        const { email } = req.body; // aqui está acessando a propriedade email dentro do req.body
+
+        if (await User.findOne({ email })) {
+            return res.status(400).send({ error: 'Usuário já existe' });
         }
         // pegando todos os parametros que o usuário está usando, e repassar para esse create(), método do objeto User do mongoose.
         const user = await User.create(req.body)// todos os parametros vao estar no req.body
         user.password = undefined; // aqui estamos fazendo manualmente com que o usuário não veja a sua senha de volta, mesmo que encriptada 
-        
-        
-        return res.send({ 
+
+
+        return res.send({
             user,
-            token: generateToken({id: user.id})
-         }); // aqui, também colocamos o token de autenticação para quando novo usuário se cadastrar, ele também receber o token 
-    } catch (error){
-        return res.status(400).send({error});
+            token: generateToken({ id: user.id })
+        }); // aqui, também colocamos o token de autenticação para quando novo usuário se cadastrar, ele também receber o token 
+    } catch (error) {
+        return res.status(400).send({ error });
     }
 });
 
 // autenticação do usuário
-router.post('/authenticate', async (req, res)=>{
+router.post('/authenticate', async (req, res) => {
     // não da pra aceessar assim, porque assim retorna o valor específico e não o objeto, e função do findOne precisa pegar um objeto
     // const email = req.body.email;
     // const password = req.body.password;
 
-    const {email, password} = req.body;
-    const user = await User.findOne({email}).select('+password');
+    const { email, password } = req.body;
+    const user = await User.findOne({ email }).select('+password');
     //checando se existe usuário
-    if (!user){
-        return res.status(400).send({ error: 'Usuário não existe'});
+    if (!user) {
+        return res.status(400).send({ error: 'Usuário não existe' });
     }
     // checar se a senha que ele colocou é a senha que ele cadastrou
-    if (!await bcrypt.compare(password, user.password)){
+    if (!await bcrypt.compare(password, user.password)) {
         // tem await nessa função bcrypt porque ela é assincrona
-        return res.status(400).send({error: "Senha inválida"});
+        return res.status(400).send({ error: "Senha inválida" });
     }
 
     user.password = undefined;
 
     // assim vamos retornar esse token pro usuário    
-    res.send({ 
-        user, 
-        token: generateToken({ id: user.id }) 
-    }); 
+    res.send({
+        user,
+        token: generateToken({ id: user.id })
+    });
 });
 
 // rota que a pesaso vai quando esqueci minha senha
-router.post('/forgot_password', async (req, res)=>{
-    const {email} = req.body;
-    try{
+router.post('/forgot_password', async (req, res) => {
+    const { email } = req.body;
+    try {
         // aqui assim como nas outras 3 rotas acima usando o findOne para procurar se existe esse email
         const user = await User.findOne({ email });
         // se ele não encontrar, vamos retornar a mesma coisa que retornarmos na autenticação
-        if (!user){
-            return res.status(400).send({ error: 'Usuário não existe'});
+        if (!user) {
+            return res.status(400).send({ error: 'Usuário não existe' });
         }
         // agora vamos gerar um token para mandar pro e-mail da pessoa, que quer resetar a senha. E vamos usar o crypto que ja vem com modules do Node.
         const token = crypto.randomBytes(20).toString('hex');
@@ -103,29 +103,31 @@ router.post('/forgot_password', async (req, res)=>{
 
         console.log('TOKEN E DATA DE EXPIRACAO DO RESET DA SENHA', token, now);
         console.log('EMAIL', email);
-        
+
         mailer.sendMail({
-           // pra quem eu vou enviar o email? pro email que recebemos lá em cima, na requisição, no req.body
-           to: email,
-           from: 'juliamzapata@gmail.com',
-           template: 'auth/forgot_password',
-           context: { token } 
-        }, (err) =>{
+            // pra quem eu vou enviar o email? pro email que recebemos lá em cima, na requisição, no req.body
+            to: email,
+            from: 'juliamzapata@gmail.com',
+            template: 'auth/forgot_password',
+            context: { token }
+        }, (err) => {
             console.log(err);
-            if (err){
-                return res.status(400).send({error: 'Não pode ser alterada a senha'});
+            if (err) {
+                return res.status(400).send({ error: 'Não pode ser alterada a senha' });
             }
-            return res.send('Enviado');
+            return res.send({ result: 'Enviado' });
         }
         )
 
 
 
-    }catch(err){
+    } catch (err) {
         console.log(err);
-        res.status(400).send({err: 'Erro no forgot passaword tente de novo'})
+        res.status(400).send({ err: 'Erro no forgot passaword tente de novo' })
     }
 })
+
+
 
 // precisamos referenciar o authController no index principal
 // depois que repassamos
