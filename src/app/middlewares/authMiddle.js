@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const authConfig = require('../config/auth.json')
+const authConfig = require('../../config/auth.json')
 
 module.exports = (req, res, next) => {
     console.log('ESTA NO MIDDLEWARE');
@@ -42,7 +42,7 @@ module.exports = (req, res, next) => {
         // incluir a informação do User Id nas próximas requisições pro Controller
         req.userId  = decoded.id;
         return next();
-    })
+    });
 
 
     
