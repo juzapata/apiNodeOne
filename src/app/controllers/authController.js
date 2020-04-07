@@ -99,11 +99,7 @@ router.post('/forgot_password', async (req, res) => {
                 passwordResetToken: token,
                 passwordResetExpires: now
             }
-        })
-
-        console.log('TOKEN E DATA DE EXPIRACAO DO RESET DA SENHA', token, now);
-        console.log('EMAIL', email);
-
+        });
         mailer.sendMail({
             // pra quem eu vou enviar o email? pro email que recebemos lá em cima, na requisição, no req.body
             to: email,
@@ -127,7 +123,37 @@ router.post('/forgot_password', async (req, res) => {
     }
 })
 
+router.post('/reset_password', async (req, res) => {
+    const { email, token, password } = req.body;
 
+    try {
+        const user = await User.findOne({ email }).select('+passwordResetToken passwordResetExpires');
+        
+        if (!user) {
+            return res.status(400).send({ error: 'Usuário não encontrado' });
+        }
+
+        if (token !== user.passwordResetToken){
+            return res.status(400).send({errr: 'Token não é válido, tente novamente'});
+        }
+
+        const now = new Date();
+        // na rota de cima, quando o usuário pede para resetar a senha, e gerar um token ,nós colocamos a validade do token de apenas uma hora. 
+        if (now > user.passwordResetExpires){
+            return res.status(400).send({errr: 'Token expirado, gere um novo'});
+        }
+
+        user.password = password;
+
+        await user.save();
+
+        return res.send({status: 'OK!'});
+
+    } catch (err) {
+        res.status(400).send({ err: err });
+    }
+
+})
 
 // precisamos referenciar o authController no index principal
 // depois que repassamos
